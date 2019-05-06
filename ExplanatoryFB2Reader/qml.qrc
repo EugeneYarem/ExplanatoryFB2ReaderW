@@ -1,0 +1,28 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/library.png</file>
+        <file>qml/desktop/main.qml</file>
+        <file>qml/desktop/MyMenuBar.qml</file>
+        <file>images/openBook.png</file>
+        <file>images/createBookmark.png</file>
+        <file>images/close.png</file>
+        <file>images/closeBook.png</file>
+        <file>qml/desktop/MyMenuItem.qml</file>
+        <file>images/bookmark.png</file>
+        <file>images/bookmarkDelete.png</file>
+        <file>images/bookmarkNew.png</file>
+        <file>images/bookmarkEdit.png</file>
+        <file>qml/desktop/MyToolButton.qml</file>
+        <file>images/settings.png</file>
+        <file>images/about.png</file>
+        <file>images/translation.png</file>
+        <file>images/definition.png</file>
+        <file>images/listBookmarks.png</file>
+        <file>images/listBooks.png</file>
+        <file>images/listDefinitions.png</file>
+        <file>images/listTranslations.png</file>
+        <file>qml/desktop/MyListButton.qml</file>
+        <file>images/content.png</file>
+        <file>images/chapterPointer.png</file>
+    </qresource>
+</RCC>
