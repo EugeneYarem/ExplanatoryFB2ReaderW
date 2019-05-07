@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui widgets quickwidgets
+QT       += core gui widgets quickwidgets network
 
 TARGET = ExplanatoryFB2Reader
 TEMPLATE = app

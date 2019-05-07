@@ -5,6 +5,7 @@
 #include <QMap>
 
 class FB2Reader;
+class QNetworkReply;
 class QToolButton;
 
 namespace Ui {
@@ -15,12 +16,10 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
-    //bool contentLoaded = false;
-    //bool isListCurrentItemChanged = false;
     FB2Reader * reader;
-    QToolButton * currentPanelButton;
     QMap<int, int> listItems;
     QPair<int, int> currentChapter;
+    QToolButton * currentPanelButton;
     Ui::MainWindow *ui;
 
     enum ActivePanel {
@@ -28,7 +27,7 @@ class MainWindow : public QMainWindow
         BookmarksPanel,
         DefinitionsPanel,
         TranslationsPanel
-    };
+    } currentPanel;
     enum PanelButtonStyle {
         ActivePanelStyle,
         DisactivatedPanelStyle
@@ -36,18 +35,26 @@ class MainWindow : public QMainWindow
 
 public:
     explicit MainWindow(QWidget *parent = nullptr);
-    ~MainWindow();
+    ~MainWindow() override;
 
-    bool eventFilter(QObject *watched, QEvent *event);
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
-    void changeActivePanel(ActivePanel newActivePanel);
-    void changeCurrentPanelButtonStyle(PanelButtonStyle style);
-    void changeCurrentPanelWidget();
+    QNetworkReply *setQueryToGoogleTranlate(const QString &textToTranslate, const QString &errorMessage);
+    void addTopLevelItemsInTreeW() const;
     void createActionsConnects();
+    void changeActivePanel(ActivePanel newActivePanel);
+    void changeCurrentPanelButtonStyle(PanelButtonStyle style) const;
+    void changeCurrentPanelWidget() const;
+    void clearBeforeOpening();
     void createConnects();
     void createPanelsConnects();
     void createToolButtonsConnections();
+
+private slots:
+    void detectLanAndFindDef();
+    void findDefinition(const QString &language);
+    void translate();
 
 };
 

@@ -2,7 +2,7 @@
 
 
 ListWidgetItem::ListWidgetItem(unsigned int chapterId, int chapterPos, const QString & text, QListWidget *parent) : QListWidgetItem (parent, QListWidgetItem::ItemType::UserType),
-    chapterId (chapterId), chapterPos(chapterPos)
+    chapterPos(chapterPos), chapterId (chapterId)
 {
     setText(text);
 }
@@ -21,7 +21,7 @@ void ListWidgetItem::setSelectedWithIcon(bool select)
 {
     this->setSelected(select);
 
-    if(select)
+    if (select)
         setIcon(QIcon(":/images/chapterPointer.png"));
     else setIcon(QIcon(""));
 }

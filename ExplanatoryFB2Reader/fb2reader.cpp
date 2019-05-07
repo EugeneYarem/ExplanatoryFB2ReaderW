@@ -19,19 +19,13 @@ int FB2Reader::getNumberBookCharacters()
 int FB2Reader::findPositionByChapterId(const QString & plainText, unsigned int index)
 {
     return plainText.indexOf( chapterIdPrefix + QString::number(index) )
-            + QString(/*"<span style=\"color: transparent; display: block; "
-                      "height: 0px; width: 0px;\">*/"ExplanatoryFB2ReaderChapterId@=1"/*</span>"*/).length();
+            + QString("ExplanatoryFB2ReaderChapterId@=1").length();
 }
 
 QString FB2Reader::getBookName() const
 {
     return m_content.value(0).name;
 }
-
-/*QString FB2Reader::getChapterIdentifier(int index) const
-{
-    return chapterIdPrefix + QString::number(index);
-}*/
 
 QString FB2Reader::getChapterName(unsigned int index) const
 {
@@ -50,6 +44,13 @@ void FB2Reader::setNumberBookCharacters(int number)
     numberBookCharacters = number;
 }
 
+void FB2Reader::clearBeforeParsing()
+{
+    numberBookCharacters = 0;
+    m_book.clear();
+    m_content.clear();
+}
+
 const QMap<unsigned int, FB2Reader::ChapterData> & FB2Reader::getContent()
 {
     return m_content;
@@ -58,47 +59,29 @@ const QMap<unsigned int, FB2Reader::ChapterData> & FB2Reader::getContent()
 void FB2Reader::removeLineBreaksFromContent()
 {
     QString::size_type pos = 0;
-    for (ChapterData & item : m_content)
-    {
+    for (ChapterData & item : m_content) {
         pos = 0;
-        for(QString::size_type i = 0; i < item.name.size(); ++i)
-        {
-            if(item.name.at(i).isSpace() && item.name.at(i + 1).isSpace()/* && str.at(i) != ' '*/)
-            {
+        for (QString::size_type i = 0; i < item.name.size(); ++i) {
+            if (item.name.at(i).isSpace() && item.name.at(i + 1).isSpace()) {
                 pos = i;
-                while(item.name.at(pos).isSpace())
+                while (item.name.at(pos).isSpace())
                     ++pos;
                 item.name.replace(i, pos - i, ". ");
             }
         }
     }
-
-    /*for (QString & str : m_content)
-        std::transform(str.begin(), str.end(), str.begin(), [] (QChar ch) {
-            return ch.isSpace() && ch != ' ' ? '_' : ch;
-        });*/
-        //str = str.simplified();
 }
 
-/*QString*/void FB2Reader::parseBook(const QString & fileName)
+void FB2Reader::parseBook(const QString & fileName)
 {
-    //QFile f("Andreev_Voskreshenie.fb2");
-    //QFile f("Andreev_Nikolay_-_Sedmoy_uroven._Kazhdomu_svoe..fb2");
-    //QFile f("Скиталец. Кандалы.fb2");
-    //QFile f("D:/Programms/ExplanatoryFB2Reader/build-ExplanatoryFB2Reader-Desktop_Qt_5_11_1_MinGW_32bit-Debug/Andreev_Voskreshenie.fb2");
     QFile f(fileName);
 
-    //QString m_book = "";
-
-    if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
-    {
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
         qDebug() << "файл не открыт";
         return;
-        //return ""/*false*/;
     }
 
-    m_book.clear();
-    m_content.clear();
+    clearBeforeParsing();
 
     //QString tokenIdPrefix = "ExplanatoryFB2ReaderId@=";
     //QString chapterIdPrefix = "ExplanatoryFB2ReaderChapterId@=";
@@ -113,9 +96,6 @@ void FB2Reader::removeLineBreaksFromContent()
     QXmlStreamReader sr(&f);
     QString rId;
     QString rType;
-    //QString m_book;
-    //QStringList *content = new QStringList;
-
     QString opt;
     QString chapterSpan = "";
 
@@ -194,7 +174,6 @@ void FB2Reader::removeLineBreaksFromContent()
                 {
                     m_book.append(chapterSpan);
                     chapterSpan = "";
-                    qDebug() << "q";
                 }
                 m_book.append("<p " + opt + " >");
                 break;
@@ -525,34 +504,21 @@ void FB2Reader::removeLineBreaksFromContent()
     }
     f.close();
 
-    QFile file("out.html");
+    /*QFile file("out.html");
     if ( !file.open(QIODevice::WriteOnly | QIODevice::Text) )
         return;
 
     QTextStream out(&file);
     out << m_book;
-    file.close();
-
-    //delete content;
+    file.close();*/
 
     removeLineBreaksFromContent();
 
     qDebug() << m_book.size();
 
     QMap<unsigned int, ChapterData>::const_iterator i = m_content.cbegin();
-    while(i != m_content.cend())
-    {
+    while (i != m_content.cend()) {
         qDebug() << i.key() << " " << i.value().name;
         ++i;
     }
-
-    //emit bookChanged();
-
-    //return m_book;
-
-    /*QString str = "";
-    for (int i = 0; i < 50; ++i)
-        str.append("a<br />");
-
-    return str;*/
 }

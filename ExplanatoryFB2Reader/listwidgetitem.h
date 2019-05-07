@@ -5,14 +5,14 @@
 
 class ListWidgetItem : public QListWidgetItem
 {
-    unsigned int chapterId;
     int chapterPos;
+    unsigned int chapterId;
 
 public:
-    ListWidgetItem(unsigned int chapterId, int chapterPos, const QString & text, QListWidget * parent = nullptr);
+    ListWidgetItem(unsigned int chapterId, int chapterPos, const QString &text, QListWidget *parent = nullptr);
 
-    unsigned int getChapterId();
     int getChapterPos();
+    unsigned int getChapterId();
     void setSelectedWithIcon(bool select);
 
 };
