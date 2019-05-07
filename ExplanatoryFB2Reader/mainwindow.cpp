@@ -29,7 +29,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    ui->treeWidget->hide();
+    ui->treeWidgetDefinitions->hide();
+    ui->tableWidgeTranslations->hide();
     //ui->listWidget->hide();
 
     reader = new FB2Reader;
@@ -108,7 +109,7 @@ QNetworkReply *MainWindow::setQueryToGoogleTranlate(const QString &str, const QS
 //----- Create and read reply
     QNetworkReply * reply = restclient->get(request);
     connect(reply, QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply::error),
-            [this, &errorMessage] (/*QNetworkReply::NetworkError code*/) {
+            [this, errorMessage] (/*QNetworkReply::NetworkError code*/) {
                 QMessageBox::critical(this, tr("Помилка з'єднання"), errorMessage);
     });
     connect(reply, &QNetworkReply::destroyed, [] () {qDebug() << "\n-------------- Translation reply deleted";});
@@ -117,8 +118,8 @@ QNetworkReply *MainWindow::setQueryToGoogleTranlate(const QString &str, const QS
 
 void MainWindow::addTopLevelItemsInTreeW() const
 {
-    ui->treeWidget->addTopLevelItem(new QTreeWidgetItem(QStringList("Найточніше")));
-    ui->treeWidget->addTopLevelItem(new QTreeWidgetItem(QStringList("Інші")));
+    ui->treeWidgetDefinitions->addTopLevelItem(new QTreeWidgetItem(QStringList("Найточніше")));
+    ui->treeWidgetDefinitions->addTopLevelItem(new QTreeWidgetItem(QStringList("Інші")));
 }
 
 void MainWindow::detectLanAndFindDef()
@@ -126,9 +127,9 @@ void MainWindow::detectLanAndFindDef()
     QNetworkReply * reply = setQueryToGoogleTranlate(ui->textBrowser->textCursor().selectedText(),
                                                      tr("Сталася помилка під час з'єднання з Вікіпедією.\n"
                                                         "Можливі причини помилки:\n"
-                                                        "1) не вдалося встановити зв'язок з Вікіпедією;\n"
-                                                        "2) Вікіпедія не підтримує мову обраного тексту;\n"
-                                                        "3) проблеми зв'язку з мережею.\n"));
+                                                        "\t1) не вдалося встановити зв'язок з Вікіпедією;\n"
+                                                        "\t2) Вікіпедія не підтримує мову обраного тексту;\n"
+                                                        "\t3) проблеми зв'язку з мережею.\n"));
 
     connect(reply, &QNetworkReply::finished, [reply, this] () {
 
@@ -162,23 +163,31 @@ void MainWindow::changeActivePanel(MainWindow::ActivePanel newActivePanel)
     switch (newActivePanel) {
     case ContentPanel:
         currentPanelButton = ui->toolButtonContent;
-        if( !ui->listWidget->isVisible() )
-            this->changeCurrentPanelWidget();
+        if( !ui->listWidget->isVisible() ) {
+            this->hideAllPanels();
+            ui->listWidget->show();
+        }
         break;
     case BookmarksPanel:
         currentPanelButton = ui->toolButtonBookmarks;
-        if( !ui->listWidget->isVisible() )
-            this->changeCurrentPanelWidget();
+        if( !ui->listWidget->isVisible() ) {
+            this->hideAllPanels();
+            ui->listWidget->show();
+        }
         break;
     case DefinitionsPanel:
         currentPanelButton = ui->toolButtonDefinitions;
-        if( !ui->treeWidget->isVisible() )
-            this->changeCurrentPanelWidget();
+        if( !ui->treeWidgetDefinitions->isVisible() ) {
+            this->hideAllPanels();
+            ui->treeWidgetDefinitions->show();
+        }
         break;
     case TranslationsPanel:
         currentPanelButton = ui->toolButtonTranslations;
-        if( !ui->treeWidget->isVisible() )
-            this->changeCurrentPanelWidget();
+        if( !ui->tableWidgeTranslations->isVisible() ) {
+            this->hideAllPanels();
+            ui->tableWidgeTranslations->show();
+        }
         break;
     }
 
@@ -202,10 +211,11 @@ void MainWindow::changeCurrentPanelButtonStyle(MainWindow::PanelButtonStyle styl
                                            "QToolButton:focus {background-color: rgba(141, 209, 211, 255); }");
 }
 
-void MainWindow::changeCurrentPanelWidget() const
+void MainWindow::hideAllPanels() const
 {
-    ui->listWidget->setVisible( !ui->listWidget->isVisible() );
-    ui->treeWidget->setVisible( !ui->treeWidget->isVisible() );
+    ui->listWidget->hide();
+    ui->tableWidgeTranslations->hide();
+    ui->treeWidgetDefinitions->hide();
 }
 
 void MainWindow::clearBeforeOpening()
@@ -219,11 +229,11 @@ void MainWindow::createActionsConnects()
     FB2Reader * r = reader;
 
     connect(ui->findDefinitionAction, &QAction::triggered, [this] () {
-        ui->treeWidget->clear();
+        ui->treeWidgetDefinitions->clear();
         this->addTopLevelItemsInTreeW();
         this->detectLanAndFindDef();
         this->changeActivePanel(MainWindow::ActivePanel::DefinitionsPanel);
-        ui->treeWidget->expandAll();
+        ui->treeWidgetDefinitions->expandAll();
     });
     connect(ui->openBookAction, &QAction::triggered, [r, this] () {
         QProcessEnvironment env(QProcessEnvironment::systemEnvironment());
@@ -247,6 +257,7 @@ void MainWindow::createActionsConnects()
                             i.key(),
                             reader->findPositionByChapterId( ui->textBrowser->toPlainText(), i.key() ),
                             i.value().name);
+
                 ui->listWidget->insertItem( ui->listWidget->count(), item );
                 this->listItems.insert(row++, item->getChapterPos());
                 if (i == content.cbegin()) {
@@ -264,11 +275,8 @@ void MainWindow::createActionsConnects()
         }
     });
     connect(ui->translateAction, &QAction::triggered, [this] () {
-        ui->treeWidget->clear();
-        this->addTopLevelItemsInTreeW();
         this->translate();
-        this->changeActivePanel(MainWindow::ActivePanel::DefinitionsPanel);
-        ui->treeWidget->expandAll();
+        this->changeActivePanel(MainWindow::ActivePanel::TranslationsPanel);
     });
 }
 
@@ -302,9 +310,9 @@ void MainWindow::createPanelsConnects()
         dynamic_cast<ListWidgetItem *>( current )->setSelectedWithIcon(true);
         ui->labelChapter->setText( current->text() );
     });
-    connect(ui->treeWidget, &QTreeWidget::doubleClicked, [this] (/*const QModelIndex &index*/) {
+    connect(ui->treeWidgetDefinitions, &QTreeWidget::doubleClicked, [this] (/*const QModelIndex &index*/) {
         if (this->currentPanel == ActivePanel::DefinitionsPanel) {
-            QDesktopServices::openUrl(QUrl(ui->treeWidget->currentItem()->text(2), QUrl::TolerantMode));
+            QDesktopServices::openUrl(QUrl(ui->treeWidgetDefinitions->currentItem()->text(2), QUrl::TolerantMode));
         }
     });
 }
@@ -378,9 +386,9 @@ void MainWindow::findDefinition(const QString &language)
             [this] (/*QNetworkReply::NetworkError code*/) {
                 QMessageBox::critical(this, tr("Помилка з'єднання"), tr("Сталася помилка під час з'єднання з Вікіпедією.\n"
                                                                         "Можливі причини помилки:\n"
-                                                                        "1) не вдалося встановити зв'язок з Вікіпедією;\n"
-                                                                        "2) Вікіпедія не підтримує мову обраного тексту;\n"
-                                                                        "3) проблеми зв'язку з мережею.\n"));
+                                                                        "\t1) не вдалося встановити зв'язок з Вікіпедією;\n"
+                                                                        "\t2) Вікіпедія не підтримує мову обраного тексту;\n"
+                                                                        "\t3) проблеми зв'язку з мережею.\n"));
     });
     connect(reply, &QNetworkReply::finished, [reply, this] () {
 
@@ -424,8 +432,8 @@ void MainWindow::findDefinition(const QString &language)
             QTreeWidgetItem *newItem = new QTreeWidgetItem(row);
             newItem->setSizeHint(1, QSize(300, 130));
             if (j == 0)
-                ui->treeWidget->topLevelItem(0)->addChild(newItem);
-            else ui->treeWidget->topLevelItem(1)->addChild(newItem);
+                ui->treeWidgetDefinitions->topLevelItem(0)->addChild(newItem);
+            else ui->treeWidgetDefinitions->topLevelItem(1)->addChild(newItem);
         }
     });
 
@@ -435,10 +443,10 @@ void MainWindow::findDefinition(const QString &language)
 void MainWindow::translate()
 {
     QNetworkReply * reply = setQueryToGoogleTranlate(ui->textBrowser->textCursor().selectedText(),
-                                                     tr("Сталася помилка під час з'єднання з Google Tranlate.\n"
+                                                     tr("Сталася помилка під час з'єднання з Google Translate.\n"
                                                         "Можливі причини помилки:\n"
-                                                        "1) не вдалося встановити зв'язок з Google Tranlate;\n"
-                                                        "2) проблеми зв'язку з мережею.\n"));
+                                                        "\t1) не вдалося встановити зв'язок з Google Translate;\n"
+                                                        "\t2) проблеми зв'язку з мережею.\n"));
 
     connect(reply, &QNetworkReply::finished, [reply, this] () {
 
@@ -460,10 +468,12 @@ void MainWindow::translate()
         if (jArr.isEmpty())
             return;
 
-        QTreeWidgetItem *newItem = new QTreeWidgetItem(QStringList( jArr.at(0).toArray().at(0).toArray().at(0).toString() ));
-        newItem->setSizeHint(1, QSize(300, 130));
-        ui->treeWidget->topLevelItem(0)->addChild(newItem);
-        ui->treeWidget->topLevelItem(1)->setHidden(true);
+        int row = ui->tableWidgeTranslations->rowCount();
+        ui->tableWidgeTranslations->insertRow( row );
+        QTableWidgetItem *newItem1 = new QTableWidgetItem( jArr.at(0).toArray().at(0).toArray().at(1).toString() );
+        QTableWidgetItem *newItem2 = new QTableWidgetItem( jArr.at(0).toArray().at(0).toArray().at(0).toString() );
+        ui->tableWidgeTranslations->setItem(row, 0, newItem1);
+        ui->tableWidgeTranslations->setItem(row, 1, newItem2);
     });
 }
 

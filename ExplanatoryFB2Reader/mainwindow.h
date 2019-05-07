@@ -45,7 +45,7 @@ private:
     void createActionsConnects();
     void changeActivePanel(ActivePanel newActivePanel);
     void changeCurrentPanelButtonStyle(PanelButtonStyle style) const;
-    void changeCurrentPanelWidget() const;
+    void hideAllPanels() const;
     void clearBeforeOpening();
     void createConnects();
     void createPanelsConnects();

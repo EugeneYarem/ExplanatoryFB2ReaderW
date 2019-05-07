@@ -545,7 +545,7 @@ QToolButton:focus {
       </widget>
      </item>
      <item>
-      <widget class="QTreeWidget" name="treeWidget">
+      <widget class="QTreeWidget" name="treeWidgetDefinitions">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
          <horstretch>0</horstretch>
@@ -598,12 +598,47 @@ QToolButton:focus {
       </widget>
      </item>
      <item>
+      <widget class="QTableWidget" name="tableWidgeTranslations">
+       <property name="editTriggers">
+        <set>QAbstractItemView::NoEditTriggers</set>
+       </property>
+       <property name="sortingEnabled">
+        <bool>true</bool>
+       </property>
+       <property name="columnCount">
+        <number>2</number>
+       </property>
+       <attribute name="horizontalHeaderDefaultSectionSize">
+        <number>126</number>
+       </attribute>
+       <attribute name="verticalHeaderDefaultSectionSize">
+        <number>60</number>
+       </attribute>
+       <column>
+        <property name="text">
+         <string>Текст</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Переклад</string>
+        </property>
+       </column>
+      </widget>
+     </item>
+     <item>
       <widget class="QListWidget" name="listWidget">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>254</width>
+         <height>0</height>
+        </size>
        </property>
       </widget>
      </item>
