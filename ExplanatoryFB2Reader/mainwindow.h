@@ -42,9 +42,9 @@ public:
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
-    QNetworkReply *setQueryToGoogleTranlate(const QString &textToTranslate, const QString &errorMessage);
     void addTopLevelItemsInTreeW() const;
     void createActionsConnects();
+    void createBookmarkRow(const QString &name, int percent, int position) const;
     void changeActivePanel(ActivePanel newActivePanel);
     void changeCurrentPanelButtonStyle(PanelButtonStyle style) const;
     void hideAllPanels() const;
@@ -52,6 +52,7 @@ private:
     void createConnects();
     void createPanelsConnects();
     void createToolButtonsConnections();
+    void moveToPosition(int position) const;
 
 private slots:
     void detectLanAndFindDef();

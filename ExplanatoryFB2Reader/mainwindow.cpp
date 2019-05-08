@@ -28,12 +28,12 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     ui->treeWidgetDefinitions->hide();
     ui->tableWidgetTranslations->hide();
-    //ui->listWidget->hide();
+    ui->tableWidgetBookmarks->hide();
+    ui->tableWidgetBookmarks->setColumnWidth(1, 150);
+    ui->tableWidgetBookmarks->setColumnHidden(2, true);
     ui->labelBook->clear();
     ui->labelChapter->clear();
     ui->labelPercent->clear();
-
-    //ui->settingsAction
 
     keeper = new Keeper;
     reader = new FB2Reader;
@@ -66,9 +66,9 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
             if ( (currentPos < currentChapter.second && (index = -1))
                  || (currentPos > currentChapter.second && currentChapter.first + 1 < listItems.size()
                      && currentPos > listItems[ currentChapter.first + 1 ] && (index = 1)) ) {
-                dynamic_cast<ListWidgetItem *>( ui->listWidget->item( currentChapter.first ) )->setSelectedWithIcon(false);
-                dynamic_cast<ListWidgetItem *>( ui->listWidget->item( currentChapter.first + index ) )->setSelectedWithIcon(true);
-                ui->labelChapter->setText( ui->listWidget->item( currentChapter.first + index )->text() );
+                dynamic_cast<ListWidgetItem *>( ui->listWidgetContent->item( currentChapter.first ) )->setSelectedWithIcon(false);
+                dynamic_cast<ListWidgetItem *>( ui->listWidgetContent->item( currentChapter.first + index ) )->setSelectedWithIcon(true);
+                ui->labelChapter->setText( ui->listWidgetContent->item( currentChapter.first + index )->text() );
                 currentChapter = QPair<int, int>(currentChapter.first + index, listItems[currentChapter.first + index]);
                 return QMainWindow::eventFilter(watched, event);
             }
@@ -92,16 +92,16 @@ void MainWindow::changeActivePanel(MainWindow::ActivePanel newActivePanel)
     switch (newActivePanel) {
     case ContentPanel:
         currentPanelButton = ui->toolButtonContent;
-        if( !ui->listWidget->isVisible() ) {
+        if( !ui->listWidgetContent->isVisible() ) {
             this->hideAllPanels();
-            ui->listWidget->show();
+            ui->listWidgetContent->show();
         }
         break;
     case BookmarksPanel:
         currentPanelButton = ui->toolButtonBookmarks;
-        if( !ui->listWidget->isVisible() ) {
+        if( !ui->tableWidgetBookmarks->isVisible() ) {
             this->hideAllPanels();
-            ui->listWidget->show();
+            ui->tableWidgetBookmarks->show();
         }
         break;
     case DefinitionsPanel:
@@ -142,7 +142,8 @@ void MainWindow::changeCurrentPanelButtonStyle(MainWindow::PanelButtonStyle styl
 
 void MainWindow::hideAllPanels() const
 {
-    ui->listWidget->hide();
+    ui->listWidgetContent->hide();
+    ui->tableWidgetBookmarks->hide();
     ui->tableWidgetTranslations->hide();
     ui->treeWidgetDefinitions->hide();
 }
@@ -150,7 +151,8 @@ void MainWindow::hideAllPanels() const
 void MainWindow::clearBeforeOpening()
 {
     listItems.clear();
-    ui->listWidget->clear();
+    ui->listWidgetContent->clear();
+    ui->tableWidgetBookmarks->clearContents();
 }
 
 void MainWindow::createActionsConnects()
@@ -171,9 +173,13 @@ void MainWindow::createActionsConnects()
                                              tr("Назва закладки:"), QLineEdit::Normal,
                                              "", &ok);
         if (ok && !text.isEmpty()) {
-            if ( this->keeper->saveBookmark(text, ui->labelPercent->text().toInt(),
-                                       ui->textBrowser->cursorForPosition(QPoint(0, 0)).position()) )
+            int percent = ui->labelPercent->text().remove( ui->labelPercent->text().length() - 1, 1 ).toInt();
+            int pos = ui->textBrowser->cursorForPosition(QPoint(0, 0)).position();
+            if ( this->keeper->saveBookmark(text, percent, pos) ) {
+                this->createBookmarkRow(text, percent, pos);
+                this->changeActivePanel(MainWindow::ActivePanel::BookmarksPanel);
                 QMessageBox::information(this, "Створення закладки", "Закладку було створено.");
+            }
             else QMessageBox::warning(this, "Створення закладки", "Помилка!");
         }
     });
@@ -211,7 +217,7 @@ void MainWindow::createActionsConnects()
                             reader->findPositionByChapterId( ui->textBrowser->toPlainText(), i.key() ),
                             i.value());
 
-                ui->listWidget->insertItem( ui->listWidget->count(), item );
+                ui->listWidgetContent->insertItem( ui->listWidgetContent->count(), item );
                 this->listItems.insert(row++, item->getChapterPos());
                 if (i == content.cbegin()) {
                     currentChapter = QPair<int, int>(0, item->getChapterPos());
@@ -227,6 +233,13 @@ void MainWindow::createActionsConnects()
             }
 
             keeper->saveBook(r->getBookName(), r->book());
+            QVector<Keeper::Bookmark> bookmarks = keeper->readBookmarks( r->getBookName() );
+            QVector<Keeper::Bookmark>::const_iterator it = bookmarks.cbegin();
+            while (it != bookmarks.cend()) {
+                this->createBookmarkRow(it->name, it->percent, it->position);
+                ++it;
+            }
+            ui->tableWidgetBookmarks->sortItems(2);
         }
     });
     connect(ui->translateAction, &QAction::triggered, [this] () {
@@ -236,6 +249,18 @@ void MainWindow::createActionsConnects()
         this->translate();
         this->changeActivePanel(MainWindow::ActivePanel::TranslationsPanel);
     });
+}
+
+void MainWindow::createBookmarkRow(const QString &name, int percent, int position) const
+{
+    int row = ui->tableWidgetBookmarks->rowCount();
+    ui->tableWidgetBookmarks->insertRow( row );
+    QTableWidgetItem *newItem1 = new QTableWidgetItem( name );
+    QTableWidgetItem *newItem2 = new QTableWidgetItem( QString::number(percent) + "%" );
+    QTableWidgetItem *newItem3 = new QTableWidgetItem( QString::number(position) );
+    ui->tableWidgetBookmarks->setItem(row, 0, newItem1);
+    ui->tableWidgetBookmarks->setItem(row, 1, newItem2);
+    ui->tableWidgetBookmarks->setItem(row, 2, newItem3);
 }
 
 void MainWindow::createConnects()
@@ -250,21 +275,15 @@ void MainWindow::createConnects()
 
 void MainWindow::createPanelsConnects()
 {
-    connect(ui->listWidget, &QListWidget::currentItemChanged, [this] (QListWidgetItem *current, QListWidgetItem *previous) {
+    connect(ui->listWidgetContent, &QListWidget::currentItemChanged, [this] (QListWidgetItem *current, QListWidgetItem *previous) {
         if (previous)
             dynamic_cast<ListWidgetItem *>( previous )->setSelectedWithIcon(false);
-        else dynamic_cast<ListWidgetItem *>( ui->listWidget->item(0) )->setSelectedWithIcon(false);
+        else dynamic_cast<ListWidgetItem *>( ui->listWidgetContent->item(0) )->setSelectedWithIcon(false);
 
-        QTextCursor cursor = ui->textBrowser->textCursor();
-        cursor.setPosition( dynamic_cast<ListWidgetItem *>( current )->getChapterPos() );
-        ui->textBrowser->setTextCursor(cursor);
+        moveToPosition(dynamic_cast<ListWidgetItem *>( current )->getChapterPos());
 
-        int cursorY = ui->textBrowser->cursorRect().top();
-        QScrollBar *vbar = ui->textBrowser->verticalScrollBar();
-        vbar->setValue(vbar->value() + cursorY + 30);
-
-        dynamic_cast<ListWidgetItem *>( ui->listWidget->item(this->currentChapter.first) )->setSelectedWithIcon(false);
-        this->currentChapter = QPair<int, int>(ui->listWidget->row(current), dynamic_cast<ListWidgetItem *>( current )->getChapterPos());
+        dynamic_cast<ListWidgetItem *>( ui->listWidgetContent->item(this->currentChapter.first) )->setSelectedWithIcon(false);
+        this->currentChapter = QPair<int, int>(ui->listWidgetContent->row(current), dynamic_cast<ListWidgetItem *>( current )->getChapterPos());
         dynamic_cast<ListWidgetItem *>( current )->setSelectedWithIcon(true);
         ui->labelChapter->setText( current->text() );
     });
@@ -272,6 +291,23 @@ void MainWindow::createPanelsConnects()
         if (this->currentPanel == ActivePanel::DefinitionsPanel) {
             QDesktopServices::openUrl(QUrl(ui->treeWidgetDefinitions->currentItem()->text(2), QUrl::TolerantMode));
         }
+    });
+    connect(ui->tableWidgetBookmarks, &QTableWidget::itemClicked, [this] (QTableWidgetItem *item) {
+        int row = ui->tableWidgetBookmarks->row(item),
+            pos = ui->tableWidgetBookmarks->item( row, 2 )->text().toInt(),
+            listRow = 0;
+
+        QMap<int, int>::const_iterator i = listItems.cbegin();
+        while (i != listItems.cend()) {
+            if (i.value() > pos) {
+                listRow = i.key() - 1;
+                break;
+            }
+            ++i;
+        }
+        emit ui->listWidgetContent->currentItemChanged( ui->listWidgetContent->item(listRow),
+                                                        ui->listWidgetContent->currentItem());
+        moveToPosition( pos );
     });
 }
 
@@ -297,6 +333,17 @@ void MainWindow::createToolButtonsConnections()
             this->changeActivePanel(MainWindow::ActivePanel::TranslationsPanel);
         }
     });
+}
+
+void MainWindow::moveToPosition(int position) const
+{
+    QTextCursor cursor = ui->textBrowser->textCursor();
+    cursor.setPosition( position );
+    ui->textBrowser->setTextCursor(cursor);
+
+    int cursorY = ui->textBrowser->cursorRect().top();
+    QScrollBar *vbar = ui->textBrowser->verticalScrollBar();
+    vbar->setValue(vbar->value() + cursorY + 30);
 }
 
 void MainWindow::detectLanAndFindDef()

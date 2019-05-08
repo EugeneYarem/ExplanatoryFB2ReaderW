@@ -637,7 +637,38 @@ QToolButton:focus {
       </widget>
      </item>
      <item>
-      <widget class="QListWidget" name="listWidget">
+      <widget class="QTableWidget" name="tableWidgetBookmarks">
+       <property name="minimumSize">
+        <size>
+         <width>254</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="editTriggers">
+        <set>QAbstractItemView::NoEditTriggers</set>
+       </property>
+       <property name="sortingEnabled">
+        <bool>true</bool>
+       </property>
+       <column>
+        <property name="text">
+         <string>Назва</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>Відсоток прочитаного</string>
+        </property>
+       </column>
+       <column>
+        <property name="text">
+         <string>    </string>
+        </property>
+       </column>
+      </widget>
+     </item>
+     <item>
+      <widget class="QListWidget" name="listWidgetContent">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
          <horstretch>0</horstretch>

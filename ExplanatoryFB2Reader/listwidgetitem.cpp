@@ -8,12 +8,12 @@ ListWidgetItem::ListWidgetItem(unsigned int chapterId, int chapterPos, const QSt
     setText(text);
 }
 
-unsigned int ListWidgetItem::getChapterId()
+unsigned int ListWidgetItem::getChapterId() const
 {
     return chapterId;
 }
 
-int ListWidgetItem::getChapterPos()
+int ListWidgetItem::getChapterPos() const
 {
     return chapterPos;
 }

@@ -20,10 +20,10 @@ private:
 public:
     FB2Reader() = default;
 
-    const QMap<unsigned int, QString> & getContent();
+    const QMap<unsigned int, QString> & getContent() const;
     const QString & book() const;
-    int findPositionByChapterId(const QString &plainText, unsigned int index);
-    int getNumberBookCharacters();    
+    int findPositionByChapterId(const QString &plainText, unsigned int index) const;
+    int getNumberBookCharacters() const;
     QString getBookName() const;
     QString getChapterName(unsigned int index) const;
     QString getFirstChapterName() const;    

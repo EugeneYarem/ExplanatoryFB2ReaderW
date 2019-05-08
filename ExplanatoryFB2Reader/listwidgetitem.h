@@ -11,8 +11,8 @@ class ListWidgetItem : public QListWidgetItem
 public:
     ListWidgetItem(unsigned int chapterId, int chapterPos, const QString &text, QListWidget *parent = nullptr);
 
-    int getChapterPos();
-    unsigned int getChapterId();
+    int getChapterPos() const;
+    unsigned int getChapterId() const;
     void setSelectedWithIcon(bool select);
 
 };

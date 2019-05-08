@@ -11,12 +11,12 @@ const QString & FB2Reader::book() const
     return m_book;
 }
 
-int FB2Reader::getNumberBookCharacters()
+int FB2Reader::getNumberBookCharacters() const
 {
     return numberBookCharacters;
 }
 
-int FB2Reader::findPositionByChapterId(const QString &plainText, unsigned int index)
+int FB2Reader::findPositionByChapterId(const QString &plainText, unsigned int index) const
 {
     return plainText.indexOf( chapterIdPrefix + QString::number(index) )
             + QString("ExplanatoryFB2ReaderChapterId@=1").length();
@@ -51,7 +51,7 @@ void FB2Reader::clearBeforeParsing()
     m_content.clear();
 }
 
-const QMap<unsigned int, QString> & FB2Reader::getContent()
+const QMap<unsigned int, QString> & FB2Reader::getContent() const
 {
     return m_content;
 }
