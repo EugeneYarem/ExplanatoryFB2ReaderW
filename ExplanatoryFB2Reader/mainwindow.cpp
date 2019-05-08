@@ -1,21 +1,18 @@
+#include "expounders/wikipediaexpounder.h"
 #include "fb2reader.h"
+#include "keeper.h"
+#include "translators/googletranslator.h"
 #include "listwidgetitem.h"
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QDebug>
 #include <QDesktopServices>
 #include <QFileDialog>
+#include <QInputDialog>
 #include <QMessageBox>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QJsonObject>
 #include <QProcessEnvironment>
 #include <QResizeEvent>
 #include <QScrollBar>
-#include <QtNetwork/QNetworkAccessManager>
-#include <QtNetwork/QNetworkReply>
-#include <QtNetwork/QNetworkRequest>
-#include <QUrlQuery>
 
 static QStringList WikiSupportedLan = { "id", "de", "en", "eo", "nl", "kab", "vi",
                                         "tr", "az", "da", "es", "fr", "it", "lt",
@@ -30,18 +27,26 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     ui->treeWidgetDefinitions->hide();
-    ui->tableWidgeTranslations->hide();
+    ui->tableWidgetTranslations->hide();
     //ui->listWidget->hide();
+    ui->labelBook->clear();
+    ui->labelChapter->clear();
+    ui->labelPercent->clear();
 
+    //ui->settingsAction
+
+    keeper = new Keeper;
     reader = new FB2Reader;
     currentPanelButton = ui->toolButtonContent;
     changeCurrentPanelButtonStyle(PanelButtonStyle::ActivePanelStyle);
+    ui->cashingAction->setChecked( keeper->isMustCashing() );
 
     createConnects();
 }
 
 MainWindow::~MainWindow()
 {
+    delete keeper;
     delete reader;
     delete ui;
 }
@@ -73,86 +78,10 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
     return QMainWindow::eventFilter(watched, event);
 }
 
-QNetworkReply *MainWindow::setQueryToGoogleTranlate(const QString &str, const QString &errorMessage)
-{
-//----- Create URL
-    QUrl myurl;
-    myurl.setScheme("https"); //https also applicable
-    myurl.setHost("translate.googleapis.com"/*"ws.detectlanguage.com"*/); // https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=uk&dt=t&q=Tiu%20frazo%20estas%20skribita%20en%20Esperanto.
-    myurl.setPath("/translate_a/single"/*"/0.2/detect"*/);
-
-//----- Create URL query
-    QUrlQuery querystr;
-    querystr.addQueryItem("client", "gtx");
-    querystr.addQueryItem("sl", "auto");
-    querystr.addQueryItem("tl", "uk");
-    querystr.addQueryItem("dt", "t");
-    querystr.addQueryItem("q", str);
-    //querystr.addQueryItem("key", "demo");
-
-    myurl.setQuery(querystr); // Add query to URL
-
-    qDebug() << "\n-------------- Translation";
-    qDebug() << str;
-    qDebug() << myurl.toString();
-
-//----- Create network request
-    QNetworkRequest request;
-    request.setUrl(myurl);
-    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-
-//----- Create network access manager
-    QNetworkAccessManager * restclient;
-    restclient = new QNetworkAccessManager(this);
-    connect(restclient, &QNetworkAccessManager::destroyed, [] () {qDebug() << "\n-------------- Translation manager deleted";});
-
-//----- Create and read reply
-    QNetworkReply * reply = restclient->get(request);
-    connect(reply, QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply::error),
-            [this, errorMessage] (/*QNetworkReply::NetworkError code*/) {
-                QMessageBox::critical(this, tr("Помилка з'єднання"), errorMessage);
-    });
-    connect(reply, &QNetworkReply::destroyed, [] () {qDebug() << "\n-------------- Translation reply deleted";});
-    return reply;
-}
-
 void MainWindow::addTopLevelItemsInTreeW() const
 {
     ui->treeWidgetDefinitions->addTopLevelItem(new QTreeWidgetItem(QStringList("Найточніше")));
     ui->treeWidgetDefinitions->addTopLevelItem(new QTreeWidgetItem(QStringList("Інші")));
-}
-
-void MainWindow::detectLanAndFindDef()
-{
-    QNetworkReply * reply = setQueryToGoogleTranlate(ui->textBrowser->textCursor().selectedText(),
-                                                     tr("Сталася помилка під час з'єднання з Вікіпедією.\n"
-                                                        "Можливі причини помилки:\n"
-                                                        "\t1) не вдалося встановити зв'язок з Вікіпедією;\n"
-                                                        "\t2) Вікіпедія не підтримує мову обраного тексту;\n"
-                                                        "\t3) проблеми зв'язку з мережею.\n"));
-
-    connect(reply, &QNetworkReply::finished, [reply, this] () {
-
-    //----- Read data from reply and close reply with manager
-        QByteArray arr = reply->readAll();
-        reply->close();
-        reply->manager()->clearAccessCache();
-        reply->manager()->deleteLater();
-        reply->deleteLater();
-
-    //----- Parse server answer
-        QJsonDocument doc = QJsonDocument::fromJson(arr);
-        if (doc.isEmpty() && !doc.isArray())
-            return;
-
-        qDebug() << doc.toJson();
-
-        QJsonArray jArr = doc.array();
-        if (jArr.isEmpty())
-            return;
-
-        this->findDefinition(jArr.at(2).toString());
-    });    
 }
 
 void MainWindow::changeActivePanel(MainWindow::ActivePanel newActivePanel)
@@ -184,9 +113,9 @@ void MainWindow::changeActivePanel(MainWindow::ActivePanel newActivePanel)
         break;
     case TranslationsPanel:
         currentPanelButton = ui->toolButtonTranslations;
-        if( !ui->tableWidgeTranslations->isVisible() ) {
+        if( !ui->tableWidgetTranslations->isVisible() ) {
             this->hideAllPanels();
-            ui->tableWidgeTranslations->show();
+            ui->tableWidgetTranslations->show();
         }
         break;
     }
@@ -214,7 +143,7 @@ void MainWindow::changeCurrentPanelButtonStyle(MainWindow::PanelButtonStyle styl
 void MainWindow::hideAllPanels() const
 {
     ui->listWidget->hide();
-    ui->tableWidgeTranslations->hide();
+    ui->tableWidgetTranslations->hide();
     ui->treeWidgetDefinitions->hide();
 }
 
@@ -228,7 +157,31 @@ void MainWindow::createActionsConnects()
 {
     FB2Reader * r = reader;
 
+    connect(ui->closeBookAction, &QAction::triggered, [this] () {
+        this->clearBeforeOpening();
+        ui->textBrowser->clear();
+        ui->labelBook->clear();
+        ui->labelChapter->clear();
+        ui->labelPercent->clear();
+    });
+    connect(ui->createBookmarkAction, &QAction::triggered, [this] () {
+        bool ok;
+
+        QString text = QInputDialog::getText(this, tr("Створити закладку"),
+                                             tr("Назва закладки:"), QLineEdit::Normal,
+                                             "", &ok);
+        if (ok && !text.isEmpty()) {
+            if ( this->keeper->saveBookmark(text, ui->labelPercent->text().toInt(),
+                                       ui->textBrowser->cursorForPosition(QPoint(0, 0)).position()) )
+                QMessageBox::information(this, "Створення закладки", "Закладку було створено.");
+            else QMessageBox::warning(this, "Створення закладки", "Помилка!");
+        }
+    });
+    connect(ui->exitAction, &QAction::triggered, this, &MainWindow::close);
     connect(ui->findDefinitionAction, &QAction::triggered, [this] () {
+        if(ui->textBrowser->textCursor().selectedText().isEmpty())
+            return;
+
         ui->treeWidgetDefinitions->clear();
         this->addTopLevelItemsInTreeW();
         this->detectLanAndFindDef();
@@ -249,14 +202,14 @@ void MainWindow::createActionsConnects()
             this->changeActivePanel(MainWindow::ActivePanel::ContentPanel);
             r->setNumberBookCharacters( ui->textBrowser->toPlainText().length() );
 
-            const QMap<unsigned int, FB2Reader::ChapterData> & content = r->getContent();
-            QMap<unsigned int, FB2Reader::ChapterData>::const_iterator i = content.cbegin();
+            const QMap<unsigned int, QString> & content = r->getContent();
+            QMap<unsigned int, QString>::const_iterator i = content.cbegin();
             int row = 0;
             while (i != content.cend()) {
                 ListWidgetItem * item = new ListWidgetItem(
                             i.key(),
                             reader->findPositionByChapterId( ui->textBrowser->toPlainText(), i.key() ),
-                            i.value().name);
+                            i.value());
 
                 ui->listWidget->insertItem( ui->listWidget->count(), item );
                 this->listItems.insert(row++, item->getChapterPos());
@@ -272,9 +225,14 @@ void MainWindow::createActionsConnects()
                 qDebug() << j.key() << " " << j.value();
                 ++j;
             }
+
+            keeper->saveBook(r->getBookName(), r->book());
         }
     });
     connect(ui->translateAction, &QAction::triggered, [this] () {
+        if(ui->textBrowser->textCursor().selectedText().isEmpty())
+            return;
+
         this->translate();
         this->changeActivePanel(MainWindow::ActivePanel::TranslationsPanel);
     });
@@ -283,6 +241,7 @@ void MainWindow::createActionsConnects()
 void MainWindow::createConnects()
 {
     ui->textBrowser->verticalScrollBar()->installEventFilter(this);
+    connect(ui->cashingAction, &QAction::triggered, keeper, &Keeper::setCashing);
 
     createToolButtonsConnections();
     createActionsConnects();
@@ -291,8 +250,7 @@ void MainWindow::createConnects()
 
 void MainWindow::createPanelsConnects()
 {
-    //FB2Reader * r = reader;
-    connect(ui->listWidget, &QListWidget::currentItemChanged, [this/*, r*/] (QListWidgetItem *current, QListWidgetItem *previous) {
+    connect(ui->listWidget, &QListWidget::currentItemChanged, [this] (QListWidgetItem *current, QListWidgetItem *previous) {
         if (previous)
             dynamic_cast<ListWidgetItem *>( previous )->setSelectedWithIcon(false);
         else dynamic_cast<ListWidgetItem *>( ui->listWidget->item(0) )->setSelectedWithIcon(false);
@@ -341,139 +299,93 @@ void MainWindow::createToolButtonsConnections()
     });
 }
 
+void MainWindow::detectLanAndFindDef()
+{
+    GoogleTranslator *translator = new GoogleTranslator;
+    connect(translator, &Translator::errorOccurred, [this] () {
+        QMessageBox::critical(this, tr("Помилка з'єднання"), tr("Сталася помилка під час з'єднання з Вікіпедією.\n"
+                                                                "Можливі причини помилки:\n"
+                                                                "\t1) не вдалося встановити зв'язок з Вікіпедією;\n"
+                                                                "\t2) Вікіпедія не підтримує мову обраного тексту;\n"
+                                                                "\t3) проблеми зв'язку з мережею.\n"));
+    });
+    connect(translator, &Translator::detected,
+            [this, translator] (QMap<QString, double> langAndProbability) {
+                if (langAndProbability.isEmpty()) {
+                    translator->deleteLater();
+                    return;
+                }
+                findDefinition(langAndProbability.begin().key());
+                translator->deleteLater();
+            }
+    );
+    translator->detectLanguage(ui->textBrowser->textCursor().selectedText());
+}
+
 void MainWindow::findDefinition(const QString &language)
 {
-    qDebug() << "\n-------------- Language: " << language;
-    /*if (!WikiSupportedLan.contains(language)) {
-        QMessageBox::critical(this, tr("Помилка пошуку"), tr("Значення слова не може бути отримане через відсутність підтримки Вікіпедією мови виділеного тексту."));
-    }*/
-
-    QString str = ui->textBrowser->textCursor().selectedText();
-
-//----- Create URL
-    QUrl myurl;
-    myurl.setScheme("http"); //https also applicable
-    myurl.setHost(language + ".wikipedia.org");
-    myurl.setPath("/w/api.php");
-
-//----- Create URL query
-    QUrlQuery querystr;
-    querystr.addQueryItem("action", "opensearch");
-    querystr.addQueryItem("search", str);
-    querystr.addQueryItem("prop", "info");
-    querystr.addQueryItem("format", "json");
-    querystr.addQueryItem("inprop", "url");
-
-    myurl.setQuery(querystr); // Add query to URL
-
-    qDebug() << "\n-------------- Definition";
-    qDebug() << str;
-    qDebug() << myurl.toString();
-
-//----- Create network request
-    QNetworkRequest request;
-    request.setUrl(myurl);
-    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-
-//----- Create network access manager
-    QNetworkAccessManager *restclient;
-    restclient = new QNetworkAccessManager(this);
-    connect(restclient, &QNetworkAccessManager::destroyed, [] () { qDebug() << "\n-------------- Definition manager deleted"; });
-
-//----- Create and read reply
-    QNetworkReply *reply = restclient->get(request);
-    connect(reply, QOverload<QNetworkReply::NetworkError>::of(&QNetworkReply::error),
-            [this] (/*QNetworkReply::NetworkError code*/) {
-                QMessageBox::critical(this, tr("Помилка з'єднання"), tr("Сталася помилка під час з'єднання з Вікіпедією.\n"
-                                                                        "Можливі причини помилки:\n"
-                                                                        "\t1) не вдалося встановити зв'язок з Вікіпедією;\n"
-                                                                        "\t2) Вікіпедія не підтримує мову обраного тексту;\n"
-                                                                        "\t3) проблеми зв'язку з мережею.\n"));
+    WikipediaExpounder *wiki = new WikipediaExpounder(language);
+    connect(wiki, &Expounder::errorOccurred, [this] () {
+        QMessageBox::critical(this, tr("Помилка з'єднання"), tr("Сталася помилка під час з'єднання з Вікіпедією.\n"
+                                                                "Можливі причини помилки:\n"
+                                                                "\t1) не вдалося встановити зв'язок з Вікіпедією;\n"
+                                                                "\t2) Вікіпедія не підтримує мову обраного тексту;\n"
+                                                                "\t3) проблеми зв'язку з мережею.\n"));
     });
-    connect(reply, &QNetworkReply::finished, [reply, this] () {
-
-    //----- Read data from reply and close reply with manager
-        QByteArray arr = reply->readAll();
-        reply->close();
-        reply->manager()->clearAccessCache();
-        reply->manager()->deleteLater();
-        reply->deleteLater();
-
-    //----- Parse server answer
-        QJsonDocument doc = QJsonDocument::fromJson(arr);
-        if (doc.isEmpty() && !doc.isArray())
+    connect(wiki, &Expounder::explanationFound, [this, wiki] (QVector<Expounder::Explanation> explanations) {
+        if (explanations.isEmpty()) {
+            wiki->deleteLater();
             return;
-
-        qDebug() << doc.toJson();
-
-        QJsonArray jArr = doc.array();
-        if (jArr.isEmpty())
-            return;
-
-        QVector<QJsonArray> columns;
-
-        QJsonArray::iterator i = jArr.begin();
-        int curColumn = 0;
-        while (i != jArr.end() && curColumn < 3) {
-            if (i->isArray()) {
-                columns.push_back(i->toArray());
-                ++curColumn;
-            }
-            ++i;
         }
-
-        for (int j = 0; j < columns.at(0).count(); ++j) {
+        QVector<Expounder::Explanation>::const_iterator i = explanations.cbegin();
+        while (i != explanations.cend()) {
             QStringList row = {
-                                columns.at(0).at(j).toString(), // name
-                                columns.at(1).at(j).toString(), // definition
-                                columns.at(2).at(j).toString(), // link
+                                i->idea, // name
+                                i->brief, // definition
+                                i->link, // link
             };
-
             QTreeWidgetItem *newItem = new QTreeWidgetItem(row);
             newItem->setSizeHint(1, QSize(300, 130));
-            if (j == 0)
+            if (i == explanations.cbegin())
                 ui->treeWidgetDefinitions->topLevelItem(0)->addChild(newItem);
             else ui->treeWidgetDefinitions->topLevelItem(1)->addChild(newItem);
-        }
-    });
 
-    connect(reply, &QNetworkReply::destroyed, [] () { qDebug() << "\n-------------- Definition reply deleted"; });
+            ++i;
+        }
+        wiki->deleteLater();
+    });
+    wiki->findExplanation(ui->textBrowser->textCursor().selectedText());
 }
 
 void MainWindow::translate()
 {
-    QNetworkReply * reply = setQueryToGoogleTranlate(ui->textBrowser->textCursor().selectedText(),
-                                                     tr("Сталася помилка під час з'єднання з Google Translate.\n"
-                                                        "Можливі причини помилки:\n"
-                                                        "\t1) не вдалося встановити зв'язок з Google Translate;\n"
-                                                        "\t2) проблеми зв'язку з мережею.\n"));
-
-    connect(reply, &QNetworkReply::finished, [reply, this] () {
-
-    //----- Read data from reply and close reply with manager
-        QByteArray arr = reply->readAll();
-        reply->close();
-        reply->manager()->clearAccessCache();
-        reply->manager()->deleteLater();
-        reply->deleteLater();
-
-    //----- Parse server answer
-        QJsonDocument doc = QJsonDocument::fromJson(arr);
-        if (doc.isEmpty() && !doc.isArray())
-            return;
-
-        qDebug() << doc.toJson();
-
-        QJsonArray jArr = doc.array();
-        if (jArr.isEmpty())
-            return;
-
-        int row = ui->tableWidgeTranslations->rowCount();
-        ui->tableWidgeTranslations->insertRow( row );
-        QTableWidgetItem *newItem1 = new QTableWidgetItem( jArr.at(0).toArray().at(0).toArray().at(1).toString() );
-        QTableWidgetItem *newItem2 = new QTableWidgetItem( jArr.at(0).toArray().at(0).toArray().at(0).toString() );
-        ui->tableWidgeTranslations->setItem(row, 0, newItem1);
-        ui->tableWidgeTranslations->setItem(row, 1, newItem2);
+    int row = ui->tableWidgetTranslations->rowCount();
+    GoogleTranslator *translator = new GoogleTranslator;
+    connect(translator, &Translator::errorOccurred, [this] () {
+        QMessageBox::critical(this, tr("Помилка з'єднання"), tr("Сталася помилка під час з'єднання з Google Translate.\n"
+                                                                "Можливі причини помилки:\n"
+                                                                "\t1) не вдалося встановити зв'язок з Google Translate;\n"
+                                                                "\t2) проблеми зв'язку з мережею.\n"));
     });
+    connect(translator, &Translator::translated,
+            [this, row, translator] (QVector<Translator::Translation> translations) {
+                if (translations.isEmpty()) {
+                    translator->deleteLater();
+                    return;
+                }
+
+                QVector<Translator::Translation>::const_iterator i = translations.cbegin();
+                while (i != translations.cend()) {
+                    ui->tableWidgetTranslations->insertRow( row );
+                    QTableWidgetItem *newItem1 = new QTableWidgetItem( ui->textBrowser->textCursor().selectedText() );
+                    QTableWidgetItem *newItem2 = new QTableWidgetItem( i->translation );
+                    ui->tableWidgetTranslations->setItem(row, 0, newItem1);
+                    ui->tableWidgetTranslations->setItem(row, 1, newItem2);
+
+                    ++i;
+                }
+                translator->deleteLater();
+    });
+    translator->translate(ui->textBrowser->textCursor().selectedText());
 }
 

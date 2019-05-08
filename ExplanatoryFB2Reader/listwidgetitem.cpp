@@ -1,7 +1,8 @@
 #include "listwidgetitem.h"
 
 
-ListWidgetItem::ListWidgetItem(unsigned int chapterId, int chapterPos, const QString & text, QListWidget *parent) : QListWidgetItem (parent, QListWidgetItem::ItemType::UserType),
+ListWidgetItem::ListWidgetItem(unsigned int chapterId, int chapterPos, const QString &text, QListWidget *parent) :
+    QListWidgetItem (parent, QListWidgetItem::ItemType::UserType),
     chapterPos(chapterPos), chapterId (chapterId)
 {
     setText(text);

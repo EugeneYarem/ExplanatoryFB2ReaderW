@@ -16,7 +16,7 @@ int FB2Reader::getNumberBookCharacters()
     return numberBookCharacters;
 }
 
-int FB2Reader::findPositionByChapterId(const QString & plainText, unsigned int index)
+int FB2Reader::findPositionByChapterId(const QString &plainText, unsigned int index)
 {
     return plainText.indexOf( chapterIdPrefix + QString::number(index) )
             + QString("ExplanatoryFB2ReaderChapterId@=1").length();
@@ -24,19 +24,19 @@ int FB2Reader::findPositionByChapterId(const QString & plainText, unsigned int i
 
 QString FB2Reader::getBookName() const
 {
-    return m_content.value(0).name;
+    return m_content.value(0);
 }
 
 QString FB2Reader::getChapterName(unsigned int index) const
 {
-    return m_content.value(index).name;
+    return m_content.value(index);
 }
 
 QString FB2Reader::getFirstChapterName() const
 {
-    QMap<unsigned int, ChapterData>::const_iterator i = m_content.cbegin();
+    QMap<unsigned int, QString>::const_iterator i = m_content.cbegin();
     ++i;
-    return i.value().name;
+    return i.value();
 }
 
 void FB2Reader::setNumberBookCharacters(int number)
@@ -51,7 +51,7 @@ void FB2Reader::clearBeforeParsing()
     m_content.clear();
 }
 
-const QMap<unsigned int, FB2Reader::ChapterData> & FB2Reader::getContent()
+const QMap<unsigned int, QString> & FB2Reader::getContent()
 {
     return m_content;
 }
@@ -59,20 +59,20 @@ const QMap<unsigned int, FB2Reader::ChapterData> & FB2Reader::getContent()
 void FB2Reader::removeLineBreaksFromContent()
 {
     QString::size_type pos = 0;
-    for (ChapterData & item : m_content) {
+    for (QString & item : m_content) {
         pos = 0;
-        for (QString::size_type i = 0; i < item.name.size(); ++i) {
-            if (item.name.at(i).isSpace() && item.name.at(i + 1).isSpace()) {
+        for (QString::size_type i = 0; i < item.size(); ++i) {
+            if (item.at(i).isSpace() && item.at(i + 1).isSpace()) {
                 pos = i;
-                while (item.name.at(pos).isSpace())
+                while (item.at(pos).isSpace())
                     ++pos;
-                item.name.replace(i, pos - i, ". ");
+                item.replace(i, pos - i, ". ");
             }
         }
     }
 }
 
-void FB2Reader::parseBook(const QString & fileName)
+void FB2Reader::parseBook(const QString &fileName)
 {
     QFile f(fileName);
 
@@ -126,7 +126,7 @@ void FB2Reader::parseBook(const QString & fileName)
 
             if(sr.name().toString() == "title")
             {
-                m_content.insert(chapterId, ChapterData("")); // добавляем пункт содержания
+                m_content.insert(chapterId, ""); // добавляем пункт содержания
                 break;
             }
 
@@ -434,7 +434,7 @@ void FB2Reader::parseBook(const QString & fileName)
 
             if( thisToken.contains("title") ) // формируем содержание
             {
-                m_content.last().name/*.back()*/ += " " + sr.text().toString();//content->back()=="" ? "" : " " +
+                m_content.last()/*.back()*/ += " " + sr.text().toString();//content->back()=="" ? "" : " " +
                 //  qDebug() << "title" << sr.text().toString();
             }
 
@@ -504,21 +504,13 @@ void FB2Reader::parseBook(const QString & fileName)
     }
     f.close();
 
-    /*QFile file("out.html");
-    if ( !file.open(QIODevice::WriteOnly | QIODevice::Text) )
-        return;
-
-    QTextStream out(&file);
-    out << m_book;
-    file.close();*/
-
     removeLineBreaksFromContent();
 
     qDebug() << m_book.size();
 
-    QMap<unsigned int, ChapterData>::const_iterator i = m_content.cbegin();
+    QMap<unsigned int, QString>::const_iterator i = m_content.cbegin();
     while (i != m_content.cend()) {
-        qDebug() << i.key() << " " << i.value().name;
+        qDebug() << i.key() << " " << i.value();
         ++i;
     }
 }

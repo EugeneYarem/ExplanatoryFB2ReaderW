@@ -5,6 +5,7 @@
 #include <QMap>
 
 class FB2Reader;
+class Keeper;
 class QNetworkReply;
 class QToolButton;
 
@@ -16,10 +17,11 @@ class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
-    FB2Reader * reader;
+    FB2Reader *reader;
+    Keeper *keeper;
     QMap<int, int> listItems;
     QPair<int, int> currentChapter;
-    QToolButton * currentPanelButton;
+    QToolButton *currentPanelButton;
     Ui::MainWindow *ui;
 
     enum ActivePanel {

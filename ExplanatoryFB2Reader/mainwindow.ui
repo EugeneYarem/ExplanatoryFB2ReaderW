@@ -17,7 +17,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>ExplanatoryFB2Reader</string>
+   <string>Explanatory FB2-Reader</string>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -299,7 +299,17 @@
     <property name="title">
      <string>Допомога</string>
     </property>
-    <addaction name="settingsAction"/>
+    <widget class="QMenu" name="menu">
+     <property name="title">
+      <string>Налаштування</string>
+     </property>
+     <property name="icon">
+      <iconset resource="qml.qrc">
+       <normaloff>:/images/settings.png</normaloff>:/images/settings.png</iconset>
+     </property>
+     <addaction name="cashingAction"/>
+    </widget>
+    <addaction name="menu"/>
     <addaction name="aboutAction"/>
    </widget>
    <addaction name="mainMenu"/>
@@ -598,7 +608,7 @@ QToolButton:focus {
       </widget>
      </item>
      <item>
-      <widget class="QTableWidget" name="tableWidgeTranslations">
+      <widget class="QTableWidget" name="tableWidgetTranslations">
        <property name="editTriggers">
         <set>QAbstractItemView::NoEditTriggers</set>
        </property>
@@ -795,24 +805,6 @@ QToolButton:focus {
     <string>Ctrl+R</string>
    </property>
   </action>
-  <action name="settingsAction">
-   <property name="icon">
-    <iconset resource="qml.qrc">
-     <normaloff>:/images/settings.png</normaloff>:/images/settings.png</iconset>
-   </property>
-   <property name="text">
-    <string>Налаштування</string>
-   </property>
-   <property name="font">
-    <font>
-     <family>Segoe UI</family>
-     <pointsize>11</pointsize>
-    </font>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+S</string>
-   </property>
-  </action>
   <action name="aboutAction">
    <property name="icon">
     <iconset resource="qml.qrc">
@@ -868,6 +860,14 @@ QToolButton:focus {
    </property>
    <property name="shortcut">
     <string>Ctrl+T</string>
+   </property>
+  </action>
+  <action name="cashingAction">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Кешування книг</string>
    </property>
   </action>
  </widget>

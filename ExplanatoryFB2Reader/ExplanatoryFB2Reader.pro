@@ -27,13 +27,22 @@ SOURCES += \
         mainwindow.cpp \
     bookmodel.cpp \
     fb2reader.cpp \
-    listwidgetitem.cpp
+    listwidgetitem.cpp \
+    translators/translator.cpp \
+    translators/googletranslator.cpp \
+    expounders/wikipediaexpounder.cpp \
+    keeper.cpp
 
 HEADERS += \
         mainwindow.h \
     bookmodel.h \
     fb2reader.h \
-    listwidgetitem.h
+    listwidgetitem.h \
+    translators/translator.h \
+    translators/googletranslator.h \
+    expounders/expounder.h \
+    expounders/wikipediaexpounder.h \
+    keeper.h
 
 FORMS += \
         mainwindow.ui
