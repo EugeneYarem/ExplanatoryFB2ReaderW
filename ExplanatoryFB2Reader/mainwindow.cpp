@@ -349,7 +349,8 @@ void MainWindow::moveToPosition(int position) const
 void MainWindow::detectLanAndFindDef()
 {
     GoogleTranslator *translator = new GoogleTranslator;
-    connect(translator, &Translator::errorOccurred, [this] () {
+    connect(translator, &Translator::errorOccurred, [this] (int code) {
+        qDebug() << "detectLanAndFindDef(): " << code;
         QMessageBox::critical(this, tr("Помилка з'єднання"), tr("Сталася помилка під час з'єднання з Вікіпедією.\n"
                                                                 "Можливі причини помилки:\n"
                                                                 "\t1) не вдалося встановити зв'язок з Вікіпедією;\n"
@@ -372,7 +373,8 @@ void MainWindow::detectLanAndFindDef()
 void MainWindow::findDefinition(const QString &language)
 {
     WikipediaExpounder *wiki = new WikipediaExpounder(language);
-    connect(wiki, &Expounder::errorOccurred, [this] () {
+    connect(wiki, &Expounder::errorOccurred, [this] (int code) {
+        qDebug() << "findDefinition(): " << code;
         QMessageBox::critical(this, tr("Помилка з'єднання"), tr("Сталася помилка під час з'єднання з Вікіпедією.\n"
                                                                 "Можливі причини помилки:\n"
                                                                 "\t1) не вдалося встановити зв'язок з Вікіпедією;\n"
@@ -408,7 +410,8 @@ void MainWindow::translate()
 {
     int row = ui->tableWidgetTranslations->rowCount();
     GoogleTranslator *translator = new GoogleTranslator;
-    connect(translator, &Translator::errorOccurred, [this] () {
+    connect(translator, &Translator::errorOccurred, [this] (int code) {
+        qDebug() << "translate(): " << code;
         QMessageBox::critical(this, tr("Помилка з'єднання"), tr("Сталася помилка під час з'єднання з Google Translate.\n"
                                                                 "Можливі причини помилки:\n"
                                                                 "\t1) не вдалося встановити зв'язок з Google Translate;\n"
